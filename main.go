@@ -20,6 +20,7 @@ func main() {
 	{
 		// Quote
 		router.GET("/quote", quoteController.GetQuote)
+		router.GET("/index", quoteController.GetIndex)
 
 		// Analyze
 		router.GET("/analyze", analyzeController.GetAnalyze)

@@ -6,7 +6,7 @@ A simple market data service using Yahoo Finance as a data source.
 
 ## What you can find in this project
 
-- Get Quote
+- Get Quote, Index
 - Get Quote Analyze, Recommendation Stock, Forecast
 - Get Stock News Sentiment
 

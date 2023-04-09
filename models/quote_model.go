@@ -4,6 +4,10 @@ type QuoteRequest struct {
 	Symbol string `json:"symbol"`
 }
 
+type IndexRequest struct {
+	Index string `json:"index"`
+}
+
 type QuoteResponse struct {
 	Symbol        string  `json:"symbol"`
 	Name          string  `json:"name"`
