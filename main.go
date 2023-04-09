@@ -15,6 +15,7 @@ func main() {
 	quoteController := controllers.NewQuoteController()
 	analyzeController := controllers.NewAnalyzeController()
 	sentimentController := controllers.NewNewsController(sentimentService)
+	simulateController := controllers.NewSimulateController()
 
 	router := r.Group("/api/v1")
 	{
@@ -30,6 +31,9 @@ func main() {
 
 		// News
 		router.GET("/news/sentiment", sentimentController.GetSentiment)
+
+		// SImulate
+		router.GET("/simulate", simulateController.GetSimulate)
 	}
 
 	r.Run(":8080")

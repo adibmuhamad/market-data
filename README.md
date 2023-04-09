@@ -9,6 +9,7 @@ A simple market data service using Yahoo Finance as a data source.
 - Get Quote, Index
 - Get Quote Analyze, Recommendation Stock, Forecast
 - Get Stock News Sentiment
+- Simulate Stock
 
 ## Prerequisites
 
