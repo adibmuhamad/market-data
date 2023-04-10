@@ -81,6 +81,12 @@ func (h *analyzeController) GetAnalyze(c *gin.Context) {
 	// Calculate the Moving Average Convergence Divergence (MACD) and its signal line
 	macd, macdSignal, _ := talib.Macd(closePrices, 12, 26, 9)
 
+	// Calculate CCI using a 20-day period
+	cci := talib.Cci(stock.High, stock.Low, stock.Close, 20)
+
+	// Calculate Chaikin Accumulation/Distribution line with default parameters (using high, low, close prices and volume)
+	chaikinAD := talib.Ad(stock.High, stock.Low, stock.Close, stock.Volume)
+
 	// Check if the latest close price is above or below the moving averages
 	latestClose := closePrices[len(closePrices)-1]
 	latestSMA5 := ma5[len(ma5)-1]
@@ -90,6 +96,8 @@ func (h *analyzeController) GetAnalyze(c *gin.Context) {
 	latestRSI := rsi[len(rsi)-1]
 	latestMACD := macd[len(macd)-1]
 	latestMACDSignal := macdSignal[len(macdSignal)-1]
+	latestCCI := cci[len(cci)-1]
+	latestChaikinAD := chaikinAD[len(chaikinAD)-1]
 
 	// Use multiple indicators to confirm trend and momentum
 	var buyCount, sellCount int
@@ -102,6 +110,12 @@ func (h *analyzeController) GetAnalyze(c *gin.Context) {
 	if latestMACD > latestMACDSignal {
 		buyCount++
 	}
+	if latestCCI > 0 {
+		buyCount++
+	}
+	if latestChaikinAD > 0 {
+		buyCount++
+	}
 	if latestSMA5 < latestSMA20 && latestSMA20 < latestSMA50 {
 		sellCount++
 	}
@@ -111,34 +125,62 @@ func (h *analyzeController) GetAnalyze(c *gin.Context) {
 	if latestMACD < latestMACDSignal {
 		sellCount++
 	}
+	if latestCCI < 0 {
+		sellCount++
+	}
+	if latestChaikinAD < 0 {
+		sellCount++
+	}
 
 	// Determine recommendation based on the number of confirmations for buy and sell signals
 	var recommendation string
 	var targetBuy, targetSell float64
-	if buyCount > sellCount {
-		if buyCount == 3 {
-			recommendation = "Strong Buy"
-			targetBuy = latestClose * 1.1  // Buy if price is 10% above current price
-			targetSell = latestClose * 0.9 // Sell if price is 10% below current price
-		} else {
-			recommendation = "Buy"
-			targetBuy = latestClose * 1.05  // Buy if price is 5% above current price
-			targetSell = latestClose * 0.95 // Sell if price is 5% below current price
-		}
-	} else if sellCount > buyCount {
-		if sellCount == 3 {
-			recommendation = "Strong Sell"
-			targetBuy = latestClose * 0.9  // Buy if price is 10% below current price
-			targetSell = latestClose * 1.1 // Sell if price is 10% above current price
-		} else {
-			recommendation = "Sell"
-			targetBuy = latestClose * 0.95  // Buy if price is 5% below current price
-			targetSell = latestClose * 1.05 // Sell if price is 5% above current price
-		}
+
+	// Default values for buy and sell targets
+	targetBuy = latestClose
+	targetSell = latestClose
+
+	if buyCount == 4 && sellCount == 0 {
+		recommendation = "STRONG BUY"
+		targetBuy = latestClose + (latestClose-latestSMA20)*0.1 // 10% above SMA20
+		targetSell = 0                                          // no sell recommendation for STRONG BUY
+	} else if buyCount >= 3 && sellCount <= 1 {
+		recommendation = "BUY"
+		targetBuy = latestClose + (latestClose-latestSMA20)*0.05  // 5% above SMA20
+		targetSell = latestClose - (latestSMA20-latestClose)*0.03 // 3% below SMA20
+	} else if buyCount == 2 && sellCount == 2 {
+		recommendation = "HOLD"
+		targetBuy = 0  // no buy recommendation for HOLD
+		targetSell = 0 // no sell recommendation for HOLD
+	} else if sellCount >= 3 && buyCount <= 1 {
+		recommendation = "SELL"
+		targetBuy = 0                                             // no buy recommendation for SELL
+		targetSell = latestClose - (latestSMA20-latestClose)*0.05 // 5% below SMA20
+	} else if sellCount == 4 && buyCount == 0 {
+		recommendation = "STRONG SELL"
+		targetBuy = 0                                            // no buy recommendation for STRONG SELL
+		targetSell = latestClose - (latestClose-latestSMA20)*0.1 // 10% below SMA20
 	} else {
-		recommendation = "Hold"
-		targetBuy = 0.0
-		targetSell = 0.0
+		recommendation = "NO RECOMMENDATION"
+	}
+
+	// Calculate stop-loss order price based on the most recent closing price
+	stopLoss := latestClose * 0.95 // 5% below closing price
+
+	// Explain the recommendation based on the number of confirmations for buy and sell signals
+	var explanation string
+	if buyCount == 4 && sellCount == 0 {
+		explanation = "The stock is showing very strong buy signals from all indicators, and there are no sell signals. This is a good opportunity to buy the stock with a target price of " + fmt.Sprintf("%.2f", targetBuy) + "."
+	} else if buyCount >= 3 && sellCount <= 1 {
+		explanation = "The stock is showing strong buy signals from most indicators, and there are very few sell signals. This is a good opportunity to buy the stock with a target price of " + fmt.Sprintf("%.2f", targetBuy) + "."
+	} else if buyCount == 2 && sellCount == 2 {
+		explanation = "The stock is showing mixed signals from the indicators, and there are no clear buy or sell signals. It may be best to hold off on buying or selling the stock at this time."
+	} else if sellCount >= 3 && buyCount <= 1 {
+		explanation = "The stock is showing strong sell signals from most indicators, and there are very few buy signals. It may be best to sell the stock with a target price of " + fmt.Sprintf("%.2f", targetSell) + "."
+	} else if sellCount == 4 && buyCount == 0 {
+		explanation = "The stock is showing very strong sell signals from all indicators, and there are no buy signals. It may be best to sell the stock with a target price of " + fmt.Sprintf("%.2f", targetSell) + "."
+	} else {
+		explanation = "There is no clear recommendation for this stock based on the current indicators. It may be best to hold off on buying or selling the stock at this time."
 	}
 
 	respFormatter := models.AnalyzeResponse{}
@@ -146,10 +188,12 @@ func (h *analyzeController) GetAnalyze(c *gin.Context) {
 	respFormatter.StartDate = start.Format(defaultDate)
 	respFormatter.EndDate = end.Format(defaultDate)
 	respFormatter.Recommendation = recommendation
+	respFormatter.Explanation = explanation
 
 	quoteFormatter := models.AnalyzeQuote{}
 	quoteFormatter.BuyTarget = targetBuy
 	quoteFormatter.SellTarget = targetSell
+	quoteFormatter.StopLossPrice = stopLoss
 	quoteFormatter.LatestClose = latestClose
 	quoteFormatter.LatestMA5 = latestSMA5
 	quoteFormatter.LatestMA10 = latestSMA10
@@ -158,6 +202,8 @@ func (h *analyzeController) GetAnalyze(c *gin.Context) {
 	quoteFormatter.RSI = rsi[len(rsi)-1]
 	quoteFormatter.MACD = macd[len(macd)-1]
 	quoteFormatter.MACDSignal = macdSignal[len(macdSignal)-1]
+	quoteFormatter.CCI = cci[len(cci)-1]
+	quoteFormatter.ChaikinAD = chaikinAD[len(chaikinAD)-1]
 
 	respFormatter.AnalyzeQuote = quoteFormatter
 
