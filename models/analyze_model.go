@@ -17,22 +17,24 @@ type AnalyzeResponse struct {
 	StartDate      string       `json:"startDate"`
 	EndDate        string       `json:"endDate"`
 	Recommendation string       `json:"recommendation"`
-	Explanation   string       `json:"explanation"`
+	Explanation    string       `json:"explanation"`
 	AnalyzeQuote   AnalyzeQuote `json:"analyze"`
 }
 
 type RecommendationResponse struct {
-	BestSymbol string  `json:"bestSymbol"`
-	BestScore  float64 `json:"bestScore"`
-	BuyTarget  float64 `json:"buyTarget"`
-	SellTarget float64 `json:"sellTarget"`
+	Symbol         string  `json:"symbol"`
+	Recommendation string  `json:"recommendation"`
+	LatestClose    float64 `json:"latestClose"`
+	TargetBuy      float64 `json:"targetBuy"`
+	TargetSell     float64 `json:"targetSell"`
+	Explanation    string  `json:"explanation"`
 }
 
 type ForcestResponse struct {
-	Symbol        string       `json:"symbol"`
-	Score         int          `json:"score"`
-	ExpectedPrice float64      `json:"expectedPrice"`
-	ForcestQuote  ForcestQuote `json:"analyze"`
+	Symbol         string  `json:"symbol"`
+	PredictedPrice float64 `json:"predictedPrice"`
+	Signal         string  `json:"signal"`
+	TargetPrice    float64 `json:"targetPrice"`
 }
 
 type FundamentalResponse struct {
@@ -54,16 +56,6 @@ type AnalyzeQuote struct {
 	RSI           float64 `json:"rsi"`
 	MACD          float64 `json:"macd"`
 	MACDSignal    float64 `json:"macdSignal"`
-	CCI    float64 `json:"cci"`
-	ChaikinAD    float64 `json:"chaikinAD"`
-}
-
-type ForcestQuote struct {
-	BuyTarget     float64 `json:"buyTarget"`
-	SellTarget    float64 `json:"sellTarget"`
-	LatestClose   float64 `json:"latestClose"`
-	RSI           float64 `json:"rsi"`
-	MACD          float64 `json:"macd"`
-	MACDSignal    float64 `json:"macdSignal"`
-	MACDHistogram float64 `json:"macdHistogram"`
+	CCI           float64 `json:"cci"`
+	ChaikinAD     float64 `json:"chaikinAD"`
 }

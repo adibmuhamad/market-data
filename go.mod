@@ -10,6 +10,7 @@ require (
 	github.com/markcheno/go-quote v0.0.0-20220624214117-555891babbf1
 	github.com/markcheno/go-talib v0.0.0-20190307022042-cd53a9264d70
 	github.com/piquette/finance-go v1.0.0
+	github.com/sajari/regression v1.0.1
 )
 
 require (
@@ -35,6 +36,7 @@ require (
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
+	gonum.org/v1/gonum v0.12.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
