@@ -83,36 +83,62 @@ func (h *analyzeController) GetAnalyze(c *gin.Context) {
 
 	// Check if the latest close price is above or below the moving averages
 	latestClose := closePrices[len(closePrices)-1]
-	latestMa5 := ma5[len(ma5)-1]
-	latestMa10 := ma10[len(ma10)-1]
-	latestMa20 := ma20[len(ma20)-1]
-	latestMa50 := ma50[len(ma50)-1]
+	latestSMA5 := ma5[len(ma5)-1]
+	latestSMA10 := ma10[len(ma10)-1]
+	latestSMA20 := ma20[len(ma20)-1]
+	latestSMA50 := ma50[len(ma50)-1]
+	latestRSI := rsi[len(rsi)-1]
+	latestMACD := macd[len(macd)-1]
+	latestMACDSignal := macdSignal[len(macdSignal)-1]
 
-	// Check if the MACD and its signal line are crossing
-	macdCross := false
-	if macd[len(macd)-1] > macdSignal[len(macdSignal)-1] && macd[len(macd)-2] < macdSignal[len(macdSignal)-2] {
-		macdCross = true
-	} else if macd[len(macd)-1] < macdSignal[len(macdSignal)-1] && macd[len(macd)-2] > macdSignal[len(macdSignal)-2] {
-		macdCross = true
+	// Use multiple indicators to confirm trend and momentum
+	var buyCount, sellCount int
+	if latestSMA5 > latestSMA20 && latestSMA20 > latestSMA50 {
+		buyCount++
+	}
+	if latestRSI > 50 {
+		buyCount++
+	}
+	if latestMACD > latestMACDSignal {
+		buyCount++
+	}
+	if latestSMA5 < latestSMA20 && latestSMA20 < latestSMA50 {
+		sellCount++
+	}
+	if latestRSI < 50 {
+		sellCount++
+	}
+	if latestMACD < latestMACDSignal {
+		sellCount++
 	}
 
+	// Determine recommendation based on the number of confirmations for buy and sell signals
 	var recommendation string
-	var buyTarget, sellTarget float64
-
-	if latestClose > latestMa5 && latestClose > latestMa10 && latestClose > latestMa20 && latestClose > latestMa50 && rsi[len(rsi)-1] > 50 && macdCross {
-		recommendation = "Buy"
-		// Calculate the buy target as the average of the 5-day and 10-day SMAs
-		buyTarget = (ma5[len(ma5)-1] + ma10[len(ma10)-1]) / 2
-		// Calculate the sell target as 5% above the 20-day SMA
-		sellTarget = ma20[len(ma20)-1] * 1.05
-	} else if latestClose < latestMa5 && latestClose < latestMa10 && latestClose < latestMa20 && latestClose < latestMa50 && rsi[len(rsi)-1] < 50 && macdCross {
-		recommendation = "Sell"
-		// Calculate the buy target as 5% below the 20-day SMA
-		buyTarget = ma20[len(ma20)-1] * 0.95
-		// Calculate the sell target as the average of the 5-day and 10-day SMAs
-		sellTarget = (ma5[len(ma5)-1] + ma10[len(ma10)-1]) / 2
+	var targetBuy, targetSell float64
+	if buyCount > sellCount {
+		if buyCount == 3 {
+			recommendation = "Strong Buy"
+			targetBuy = latestClose * 1.1  // Buy if price is 10% above current price
+			targetSell = latestClose * 0.9 // Sell if price is 10% below current price
+		} else {
+			recommendation = "Buy"
+			targetBuy = latestClose * 1.05  // Buy if price is 5% above current price
+			targetSell = latestClose * 0.95 // Sell if price is 5% below current price
+		}
+	} else if sellCount > buyCount {
+		if sellCount == 3 {
+			recommendation = "Strong Sell"
+			targetBuy = latestClose * 0.9  // Buy if price is 10% below current price
+			targetSell = latestClose * 1.1 // Sell if price is 10% above current price
+		} else {
+			recommendation = "Sell"
+			targetBuy = latestClose * 0.95  // Buy if price is 5% below current price
+			targetSell = latestClose * 1.05 // Sell if price is 5% above current price
+		}
 	} else {
 		recommendation = "Hold"
+		targetBuy = 0.0
+		targetSell = 0.0
 	}
 
 	respFormatter := models.AnalyzeResponse{}
@@ -122,13 +148,13 @@ func (h *analyzeController) GetAnalyze(c *gin.Context) {
 	respFormatter.Recommendation = recommendation
 
 	quoteFormatter := models.AnalyzeQuote{}
-	quoteFormatter.BuyTarget = buyTarget
-	quoteFormatter.SellTarget = sellTarget
+	quoteFormatter.BuyTarget = targetBuy
+	quoteFormatter.SellTarget = targetSell
 	quoteFormatter.LatestClose = latestClose
-	quoteFormatter.LatestMA5 = latestMa5
-	quoteFormatter.LatestMA10 = latestMa10
-	quoteFormatter.LatestMA20 = latestMa20
-	quoteFormatter.LatestMA50 = latestMa50
+	quoteFormatter.LatestMA5 = latestSMA5
+	quoteFormatter.LatestMA10 = latestSMA10
+	quoteFormatter.LatestMA20 = latestSMA20
+	quoteFormatter.LatestMA50 = latestSMA50
 	quoteFormatter.RSI = rsi[len(rsi)-1]
 	quoteFormatter.MACD = macd[len(macd)-1]
 	quoteFormatter.MACDSignal = macdSignal[len(macdSignal)-1]
